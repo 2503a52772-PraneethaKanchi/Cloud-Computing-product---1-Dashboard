@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Virtual Classroom Access Gate | Lecturer Portal</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Google Fonts & Font Awesome Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <!-- Chart.js for analytical graphs -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">
+          <i class="fa-solid fa-microchip"></i>
+        </div>
+        <div class="brand-text">
+          <h2>GateKeeper<span>IoT</span></h2>
+          <p>Virtual Classroom Access</p>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <a href="#overview" class="nav-item active"><i class="fa-solid fa-chart-pie"></i> Overview</a>
+        <a href="#simulator" class="nav-item"><i class="fa-solid fa-id-card"></i> RFID Gate Simulator</a>
+        <a href="#logs" class="nav-item"><i class="fa-solid fa-list-check"></i> Live Access Logs</a>
+        <a href="#roster" class="nav-item"><i class="fa-solid fa-users-gear"></i> Student Roster & Subnet</a>
+        <a href="#architecture" class="nav-item"><i class="fa-solid fa-cloud-arrow-up"></i> AWS Pipeline</a>
+      </nav>
+
+      <div class="sidebar-card">
+        <div class="card-tag"><i class="fa-brands fa-aws"></i> AWS Cloud Stack</div>
+        <p class="card-desc">IoT Core &bull; Lambda &bull; DynamoDB</p>
+        <div class="status-indicator">
+          <span class="pulse-dot"></span>
+          <span>Broker: <b>aws-iot-core.online</b></span>
+        </div>
+      </div>
+
+      <div class="project-credits">
+        <p class="credits-label">DEVELOPED BY (GROUP 5)</p>
+        <ul class="credits-list">
+          <li><span>D. Taejaswini</span> <small>2503A52752</small></li>
+          <li><span>B. Mounika</span> <small>2503A52756</small></li>
+          <li><span>V. Pragathi V.L.</span> <small>2503A52761</small></li>
+          <li><span>A. Spurthi</span> <small>2503A52764</small></li>
+          <li><span>Praneetha Kanchi</span> <small>2503A52772</small></li>
+        </ul>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Top Navbar -->
+      <header class="top-navbar">
+        <div class="page-title">
+          <h1>Virtual Classroom Access Gate</h1>
+          <p class="sub-heading">Subnet Authorization &bull; ESP32 RFID Reader &bull; AWS DynamoDB Telemetry</p>
+        </div>
+        <div class="header-actions">
+          <div class="live-clock" id="liveClock">00:00:00 UTC</div>
+          <div class="gate-status-pill online">
+            <span class="status-dot"></span>
+            <span>Gate Hardware: <strong>ESP32_GATE_01</strong></span>
+          </div>
+          <button id="refreshBtn" class="btn btn-secondary" title="Fetch fresh records from DynamoDB API">
+            <i class="fa-solid fa-rotate-right"></i> Sync
+          </button>
+        </div>
+      </header>
+
+      <!-- KPI Metrics Cards Row -->
+      <section class="kpi-grid" id="overview">
+        <div class="kpi-card total-scans">
+          <div class="kpi-header">
+            <span class="kpi-title">Total Card Scans</span>
+            <div class="kpi-icon"><i class="fa-solid fa-id-badge"></i></div>
+          </div>
+          <div class="kpi-value" id="kpiTotal">0</div>
+          <div class="kpi-footer">
+            <span class="trend-up"><i class="fa-solid fa-arrow-trend-up"></i> Real-time</span>
+            <span>Recorded in DynamoDB</span>
+          </div>
+        </div>
+
+        <div class="kpi-card allowed">
+          <div class="kpi-header">
+            <span class="kpi-title">Access Allowed</span>
+            <div class="kpi-icon"><i class="fa-solid fa-circle-check"></i></div>
+          </div>
+          <div class="kpi-value" id="kpiAllowed">0</div>
+          <div class="kpi-footer">
+            <span class="rate-badge success" id="kpiAllowedRate">100%</span>
+            <span>Green LED Activated</span>
+          </div>
+        </div>
+
+        <div class="kpi-card denied">
+          <div class="kpi-header">
+            <span class="kpi-title">Access Denied</span>
+            <div class="kpi-icon"><i class="fa-solid fa-circle-xmark"></i></div>
+          </div>
+          <div class="kpi-value" id="kpiDenied">0</div>
+          <div class="kpi-footer">
+            <span class="rate-badge danger" id="kpiDeniedRate">0%</span>
+            <span>Red LED Activated</span>
+          </div>
+        </div>
+
+        <div class="kpi-card subnet">
+          <div class="kpi-header">
+            <span class="kpi-title">Allocated Subnet</span>
+            <div class="kpi-icon"><i class="fa-solid fa-network-wired"></i></div>
+          </div>
+          <div class="kpi-value subnet-text">192.168.10.0/24</div>
+          <div class="kpi-footer">
+            <span class="badge-neutral" id="kpiActiveStudents">0 Active Students</span>
+            <span>Lab Gateway: .1</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Interactive Gate & Hardware Simulator Section -->
+      <section class="interactive-grid" id="simulator">
+        <!-- Physical Gate Visualizer & Tester -->
+        <div class="panel gate-visualizer-panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <i class="fa-solid fa-microchip"></i>
+              <h3>Hardware Simulation & Physical Gate Test</h3>
+            </div>
+            <span class="badge-accent">ESP32 + MFRC522</span>
+          </div>
+
+          <div class="gate-test-body">
+            <!-- Hardware Graphic representation -->
+            <div class="esp32-visual-rig">
+              <div class="rfid-pad" id="rfidPad">
+                <div class="rfid-rings">
+                  <div class="ring ring-1"></div>
+                  <div class="ring ring-2"></div>
+                  <div class="ring ring-3"></div>
+                </div>
+                <div class="rfid-card-icon">
+                  <i class="fa-solid fa-wifi"></i>
+                  <span>RFID READER</span>
+                </div>
+                <div class="tap-hint" id="tapStatusText">Ready for Card Tap</div>
+              </div>
+
+              <div class="led-indicator-rig">
+                <div class="led-unit green-unit" id="greenLedUnit">
+                  <div class="led-bulb green-led" id="greenLed"></div>
+                  <span class="led-label">ALLOWED (GREEN)</span>
+                </div>
+                <div class="led-unit red-unit" id="redLedUnit">
+                  <div class="led-bulb red-led" id="redLed"></div>
+                  <span class="led-label">DENIED (RED)</span>
+                </div>
+              </div>
+
+              <!-- Gate Barrier Animation -->
+              <div class="turnstile-gate">
+                <div class="gate-pillar left-pillar"></div>
+                <div class="gate-barrier" id="gateBarrier">
+                  <span class="barrier-stripe"></span>
+                  <span class="barrier-stripe"></span>
+                  <span class="barrier-stripe"></span>
+                </div>
+                <div class="gate-pillar right-pillar"></div>
+                <div class="gate-door-status" id="gateDoorStatus">GATE LOCKED</div>
+              </div>
+            </div>
+
+            <!-- Simulation Controls Form -->
+            <div class="simulation-controls">
+              <h4><i class="fa-solid fa-wand-magic-sparkles"></i> Simulating Student Entry Tap</h4>
+              <p class="sim-note">Choose a student card profile or type a custom RFID Tag UID to test authorization logic.</p>
+
+              <div class="form-group">
+                <label for="studentSelect">Select Test Student RFID Card:</label>
+                <select id="studentSelect" class="form-select">
+                  <option value="CARD_TAEJASWINI">D. Taejaswini (2503A52752) &bull; UID: A3:4F:91:2B [Authorized]</option>
+                  <option value="CARD_MOUNIKA">B. Mounika (2503A52756) &bull; UID: B8:21:7C:90 [Authorized]</option>
+                  <option value="CARD_PRAGATHI">V. Pragathi Vijaya Lakshmi (2503A52761) &bull; UID: C1:89:33:DE [Authorized]</option>
+                  <option value="CARD_SPURTHI">A. Spurthi (2503A52764) &bull; UID: D4:55:1A:F2 [Authorized]</option>
+                  <option value="CARD_PRANEETHA">Praneetha Kanchi (2503A52772) &bull; UID: E9:60:44:0B [Authorized]</option>
+                  <option value="CARD_EXPIRED">Guest Student (2503A59999) &bull; UID: F0:11:82:77 [Subnet Expired]</option>
+                  <option value="CARD_UNREGISTERED">Unknown Intruder &bull; UID: 99:AA:BB:CC [Not In DynamoDB]</option>
+                </select>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label for="customUid">Or Enter Manual Tag UID:</label>
+                  <input type="text" id="customUid" class="form-input" placeholder="e.g. 5A:7F:01:BC" />
+                </div>
+                <div class="form-group flex-1">
+                  <label for="targetSubnet">Target Classroom Subnet:</label>
+                  <input type="text" id="targetSubnet" class="form-input" value="192.168.10.0/24" readonly />
+                </div>
+              </div>
+
+              <div class="sim-action-buttons">
+                <button id="tapCardBtn" class="btn btn-primary btn-glow">
+                  <i class="fa-solid fa-id-card-clip"></i> Tap Card to Gate
+                </button>
+                <button id="autoScanBtn" class="btn btn-outline">
+                  <i class="fa-solid fa-play"></i> Auto-Generate Traffic
+                </button>
+                <button id="clearLogsBtn" class="btn btn-text">
+                  <i class="fa-solid fa-trash-can"></i> Reset Logs
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Telemetry & Distribution Chart Panel -->
+        <div class="panel analytics-panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <i class="fa-solid fa-chart-pie"></i>
+              <h3>Access Distribution</h3>
+            </div>
+            <span class="badge-subtle">DynamoDB Aggregates</span>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="accessChart"></canvas>
+          </div>
+          <div class="chart-summary-stats">
+            <div class="stat-pill success-pill">
+              <span class="dot"></span>
+              <span>Allowed: <b id="chartAllowedCount">0</b></span>
+            </div>
+            <div class="stat-pill danger-pill">
+              <span class="dot"></span>
+              <span>Denied: <b id="chartDeniedCount">0</b></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Live Access Logs Section -->
+      <section class="panel logs-panel" id="logs">
+        <div class="panel-header">
+          <div class="panel-title">
+            <i class="fa-solid fa-satellite-dish"></i>
+            <h3>Live Gate Access Logs (DynamoDB Stream)</h3>
+          </div>
+          <div class="logs-toolbar">
+            <div class="filter-tabs">
+              <button class="filter-tab active" data-filter="all">All Logs (<span id="countAll">0</span>)</button>
+              <button class="filter-tab" data-filter="ALLOWED">Allowed (<span id="countAllowed">0</span>)</button>
+              <button class="filter-tab" data-filter="DENIED">Denied (<span id="countDenied">0</span>)</button>
+            </div>
+            <div class="search-box">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="logSearchInput" placeholder="Search student, UID, IP..." />
+            </div>
+            <button id="exportCsvBtn" class="btn btn-sm btn-outline">
+              <i class="fa-solid fa-download"></i> CSV
+            </button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="access-table" id="accessLogsTable">
+            <thead>
+              <tr>
+                <th>TIMESTAMP</th>
+                <th>STUDENT NAME</th>
+                <th>ROLL NUMBER</th>
+                <th>RFID TAG UID</th>
+                <th>ASSIGNED SUBNET IP</th>
+                <th>DECISION</th>
+                <th>LED HARDWARE</th>
+                <th>REASON / DETAILS</th>
+              </tr>
+            </thead>
+            <tbody id="logsTableBody">
+              <!-- Dynamically populated via script.js -->
+            </tbody>
+          </table>
+          <div class="empty-state" id="emptyLogsMessage" style="display: none;">
+            <i class="fa-solid fa-folder-open"></i>
+            <p>No card scans recorded yet. Tap a card in the simulator above.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Student Subnet Roster Table -->
+      <section class="panel roster-panel" id="roster">
+        <div class="panel-header">
+          <div class="panel-title">
+            <i class="fa-solid fa-users-rectangle"></i>
+            <h3>Classroom Subnet Enrollment Database (DynamoDB Table: <code>StudentRoster</code>)</h3>
+          </div>
+          <span class="badge-accent">Subnet Range: 192.168.10.10 - 192.168.10.250</span>
+        </div>
+        <div class="table-container">
+          <table class="roster-table">
+            <thead>
+              <tr>
+                <th>STUDENT NAME</th>
+                <th>ROLL NO</th>
+                <th>REGISTERED TAG UID</th>
+                <th>ALLOCATED IP</th>
+                <th>CLASS / BATCH</th>
+                <th>PERMISSIONS</th>
+                <th>STATUS</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>D. Taejaswini</strong></td>
+                <td><span class="mono">2503A52752</span></td>
+                <td><span class="mono badge-tag">A3:4F:91:2B</span></td>
+                <td><span class="mono">192.168.10.15</span></td>
+                <td>Cloud Computing - Sec A</td>
+                <td><span class="badge-role">Virtual Lab & Gateway</span></td>
+                <td><span class="badge-status-active">Active</span></td>
+              </tr>
+              <tr>
+                <td><strong>B. Mounika</strong></td>
+                <td><span class="mono">2503A52756</span></td>
+                <td><span class="mono badge-tag">B8:21:7C:90</span></td>
+                <td><span class="mono">192.168.10.16</span></td>
+                <td>Cloud Computing - Sec A</td>
+                <td><span class="badge-role">Virtual Lab & Gateway</span></td>
+                <td><span class="badge-status-active">Active</span></td>
+              </tr>
+              <tr>
+                <td><strong>V. Pragathi Vijaya Lakshmi</strong></td>
+                <td><span class="mono">2503A52761</span></td>
+                <td><span class="mono badge-tag">C1:89:33:DE</span></td>
+                <td><span class="mono">192.168.10.17</span></td>
+                <td>Cloud Computing - Sec A</td>
+                <td><span class="badge-role">Virtual Lab & Gateway</span></td>
+                <td><span class="badge-status-active">Active</span></td>
+              </tr>
+              <tr>
+                <td><strong>A. Spurthi</strong></td>
+                <td><span class="mono">2503A52764</span></td>
+                <td><span class="mono badge-tag">D4:55:1A:F2</span></td>
+                <td><span class="mono">192.168.10.18</span></td>
+                <td>Cloud Computing - Sec A</td>
+                <td><span class="badge-role">Virtual Lab & Gateway</span></td>
+                <td><span class="badge-status-active">Active</span></td>
+              </tr>
+              <tr>
+                <td><strong>Praneetha Kanchi</strong></td>
+                <td><span class="mono">2503A52772</span></td>
+                <td><span class="mono badge-tag">E9:60:44:0B</span></td>
+                <td><span class="mono">192.168.10.19</span></td>
+                <td>Cloud Computing - Sec A</td>
+                <td><span class="badge-role">Virtual Lab & Gateway</span></td>
+                <td><span class="badge-status-active">Active</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- AWS IoT Architecture Diagram Section -->
+      <section class="panel arch-panel" id="architecture">
+        <div class="panel-header">
+          <div class="panel-title">
+            <i class="fa-solid fa-diagram-project"></i>
+            <h3>End-to-End System Pipeline & Workflow</h3>
+          </div>
+        </div>
+        <div class="arch-flow">
+          <div class="flow-step">
+            <div class="step-num">1</div>
+            <div class="step-icon"><i class="fa-solid fa-id-card"></i></div>
+            <h4>RFID Tag Tap</h4>
+            <p>Student taps tag on RC522 reader connected to ESP32 SPI pins.</p>
+          </div>
+          <div class="flow-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+
+          <div class="flow-step">
+            <div class="step-num">2</div>
+            <div class="step-icon"><i class="fa-solid fa-microchip"></i></div>
+            <h4>ESP32 Controller</h4>
+            <p>Packages tag UID & gateway ID into JSON payload over TLS/WiFi.</p>
+          </div>
+          <div class="flow-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+
+          <div class="flow-step">
+            <div class="step-num">3</div>
+            <div class="step-icon"><i class="fa-brands fa-aws"></i></div>
+            <h4>AWS IoT Core</h4>
+            <p>Receives message on MQTT topic <code>classroom/gate/request</code>.</p>
+          </div>
+          <div class="flow-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+
+          <div class="flow-step">
+            <div class="step-num">4</div>
+            <div class="step-icon"><i class="fa-solid fa-bolt"></i></div>
+            <h4>AWS Lambda</h4>
+            <p>Queries DynamoDB whitelist; decides ALLOWED/DENIED; writes access log.</p>
+          </div>
+          <div class="flow-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+
+          <div class="flow-step">
+            <div class="step-num">5</div>
+            <div class="step-icon"><i class="fa-solid fa-database"></i></div>
+            <h4>DynamoDB + LED</h4>
+            <p>Publishes status to ESP32: Green LED = Entry Allowed, Red LED = Denied.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="footer">
+        <p>&copy; 2026 Virtual Classroom Access Gate Project &bull; Built with ESP32, AWS IoT Core, Lambda & DynamoDB</p>
+        <p class="footer-names">Group Members: D. Taejaswini, B. Mounika, V. Pragathi Vijaya Lakshmi, A. Spurthi, Praneetha Kanchi</p>
+      </footer>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
